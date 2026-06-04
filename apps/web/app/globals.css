@@ -1,0 +1,197 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --background: 140 13% 97%;
+  --foreground: 160 22% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 160 22% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 160 22% 11%;
+  --primary: 164 73% 22%;
+  --primary-foreground: 0 0% 100%;
+  --primary-strong: 166 75% 16%;
+  --primary-soft: 153 39% 94%;
+  --secondary: 156 17% 94%;
+  --secondary-foreground: 216 59% 15%;
+  --muted: 156 17% 94%;
+  --muted-foreground: 160 7% 42%;
+  --accent: 38 63% 48%;
+  --accent-foreground: 216 59% 15%;
+  --destructive: 0 58% 49%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 158 13% 88%;
+  --input: 158 13% 88%;
+  --ring: 164 73% 22%;
+  --navy: 216 59% 15%;
+  --navy-foreground: 215 100% 93%;
+  --success: 151 75% 31%;
+  --success-background: 148 58% 93%;
+  --warning: 35 100% 36%;
+  --warning-background: 42 100% 92%;
+  --danger: 0 58% 49%;
+  --danger-background: 0 79% 95%;
+  --info: 219 69% 43%;
+  --info-background: 220 100% 96%;
+  --hold: 247 39% 55%;
+  --hold-background: 247 100% 96%;
+  --commission: 38 63% 48%;
+  --commission-background: 42 75% 92%;
+  --radius: 0.5rem;
+  --card-shadow: 0 8px 24px hsl(216 59% 15% / 0.08);
+}
+
+.dark {
+  color-scheme: dark;
+  --background: 160 36% 5%;
+  --foreground: 156 33% 94%;
+  --card: 160 24% 9%;
+  --card-foreground: 156 33% 94%;
+  --popover: 160 24% 9%;
+  --popover-foreground: 156 33% 94%;
+  --primary: 160 59% 56%;
+  --primary-foreground: 160 64% 4%;
+  --primary-strong: 162 68% 37%;
+  --primary-soft: 162 52% 15%;
+  --secondary: 161 27% 12%;
+  --secondary-foreground: 156 33% 94%;
+  --muted: 161 27% 12%;
+  --muted-foreground: 162 16% 68%;
+  --accent: 40 85% 65%;
+  --accent-foreground: 160 64% 4%;
+  --destructive: 0 100% 77%;
+  --destructive-foreground: 0 0% 8%;
+  --border: 163 20% 22%;
+  --input: 163 20% 22%;
+  --ring: 160 59% 56%;
+  --navy: 216 100% 93%;
+  --navy-foreground: 216 60% 8%;
+  --success: 146 61% 62%;
+  --success-background: 150 49% 14%;
+  --warning: 40 100% 73%;
+  --warning-background: 42 63% 14%;
+  --danger: 0 100% 77%;
+  --danger-background: 0 43% 16%;
+  --info: 219 100% 79%;
+  --info-background: 218 59% 19%;
+  --hold: 248 100% 84%;
+  --hold-background: 247 43% 20%;
+  --commission: 40 85% 65%;
+  --commission-background: 39 58% 15%;
+  --card-shadow: 0 16px 40px hsl(0 0% 0% / 0.32);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+    --background: 160 36% 5%;
+    --foreground: 156 33% 94%;
+    --card: 160 24% 9%;
+    --card-foreground: 156 33% 94%;
+    --popover: 160 24% 9%;
+    --popover-foreground: 156 33% 94%;
+    --primary: 160 59% 56%;
+    --primary-foreground: 160 64% 4%;
+    --primary-strong: 162 68% 37%;
+    --primary-soft: 162 52% 15%;
+    --secondary: 161 27% 12%;
+    --secondary-foreground: 156 33% 94%;
+    --muted: 161 27% 12%;
+    --muted-foreground: 162 16% 68%;
+    --accent: 40 85% 65%;
+    --accent-foreground: 160 64% 4%;
+    --destructive: 0 100% 77%;
+    --destructive-foreground: 0 0% 8%;
+    --border: 163 20% 22%;
+    --input: 163 20% 22%;
+    --ring: 160 59% 56%;
+    --navy: 216 100% 93%;
+    --navy-foreground: 216 60% 8%;
+    --success: 146 61% 62%;
+    --success-background: 150 49% 14%;
+    --warning: 40 100% 73%;
+    --warning-background: 42 63% 14%;
+    --danger: 0 100% 77%;
+    --danger-background: 0 43% 16%;
+    --info: 219 100% 79%;
+    --info-background: 218 59% 19%;
+    --hold: 248 100% 84%;
+    --hold-background: 247 43% 20%;
+    --commission: 40 85% 65%;
+    --commission-background: 39 58% 15%;
+    --card-shadow: 0 16px 40px hsl(0 0% 0% / 0.32);
+  }
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-strong: hsl(var(--primary-strong));
+  --color-primary-soft: hsl(var(--primary-soft));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-navy: hsl(var(--navy));
+  --color-navy-foreground: hsl(var(--navy-foreground));
+  --color-success: hsl(var(--success));
+  --color-success-background: hsl(var(--success-background));
+  --color-warning: hsl(var(--warning));
+  --color-warning-background: hsl(var(--warning-background));
+  --color-danger: hsl(var(--danger));
+  --color-danger-background: hsl(var(--danger-background));
+  --color-info: hsl(var(--info));
+  --color-info-background: hsl(var(--info-background));
+  --color-hold: hsl(var(--hold));
+  --color-hold-background: hsl(var(--hold-background));
+  --color-commission: hsl(var(--commission));
+  --color-commission-background: hsl(var(--commission-background));
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --shadow-card: var(--card-shadow);
+  --font-sans: var(--font-manrope);
+  --font-serif: var(--font-source-serif);
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  margin: 0;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-manrope), Manrope, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  color: hsl(var(--navy));
+  font-family: var(--font-source-serif), "Source Serif 4", Georgia, serif;
+  line-height: 1.12;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}

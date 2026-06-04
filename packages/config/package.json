@@ -1,0 +1,17 @@
+{
+  "name": "@admission-agency/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "tsconfig"
+  ],
+  "scripts": {
+    "lint": "echo \"No lint for config package\"",
+    "typecheck": "echo \"No typecheck for config package\"",
+    "test": "echo \"No tests for config package\""
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
