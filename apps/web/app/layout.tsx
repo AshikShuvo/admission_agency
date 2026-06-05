@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 
+import { ToastProvider } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 const manrope = Manrope({
@@ -50,7 +51,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={cn(manrope.variable, sourceSerif.variable)}>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

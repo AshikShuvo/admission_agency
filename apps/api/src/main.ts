@@ -1,5 +1,6 @@
 import "reflect-metadata";
 
+import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 
 import { AppModule } from "./app.module";
@@ -7,9 +8,12 @@ import { configureApiApp } from "./common/api-bootstrap";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  configureApiApp(app);
+  const configService = app.get(ConfigService);
+  const port = configService.getOrThrow<number>("app.port");
+  const webOrigin = configService.getOrThrow<string>("app.webOrigin");
 
-  const port = Number(process.env.API_PORT ?? 4000);
+  configureApiApp(app, { webOrigin });
+
   await app.listen(port, () => {
     console.log(`API is running on port ${port}`);
   });

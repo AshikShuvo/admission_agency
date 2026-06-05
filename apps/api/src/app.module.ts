@@ -3,6 +3,9 @@ import { ConfigModule } from "@nestjs/config";
 
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
+import { appConfig } from "./config/app.config";
+import { apiEnvFilePaths } from "./config/env-file-paths";
+import { validateEnvironment } from "./config/env.validation";
 import { AdmissionModule } from "./modules/admission/admission.module";
 import { AuditModule } from "./modules/audit/audit.module";
 import { AuthModule } from "./modules/auth/auth.module";
@@ -12,6 +15,7 @@ import { DocumentsModule } from "./modules/documents/documents.module";
 import { FilesModule } from "./modules/files/files.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
+import { PrismaModule } from "./modules/prisma/prisma.module";
 import { ReportingModule } from "./modules/reporting/reporting.module";
 import { StudentsModule } from "./modules/students/students.module";
 import { UsersModule } from "./modules/users/users.module";
@@ -19,7 +23,13 @@ import { VisaModule } from "./modules/visa/visa.module";
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      envFilePath: apiEnvFilePaths,
+      isGlobal: true,
+      load: [appConfig],
+      validate: validateEnvironment
+    }),
+    PrismaModule,
     AuthModule,
     UsersModule,
     CatalogModule,

@@ -2,9 +2,13 @@ import type { INestApplication } from "@nestjs/common";
 import { ValidationPipe } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
-export function configureApiApp(app: INestApplication): void {
+export interface ApiBootstrapOptions {
+  readonly webOrigin: string;
+}
+
+export function configureApiApp(app: INestApplication, options: ApiBootstrapOptions): void {
   app.enableCors({
-    origin: process.env.WEB_ORIGIN ?? "http://localhost:3000"
+    origin: options.webOrigin
   });
 
   app.useGlobalPipes(
