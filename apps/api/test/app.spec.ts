@@ -96,7 +96,7 @@ describe("App health", () => {
     configureApiApp(app, { webOrigin: testWebOrigin });
     await app.init();
 
-    await request(app.getHttpServer()).get("/health").expect(200).expect({
+    await request(app.getHttpAdapter().getInstance()).get("/health").expect(200).expect({
       ok: true,
       service: "admission-agency-api"
     });
@@ -114,7 +114,7 @@ describe("App health", () => {
     configureApiApp(app, { webOrigin: testWebOrigin });
     await app.init();
 
-    await request(app.getHttpServer())
+    await request(app.getHttpAdapter().getInstance())
       .get("/docs-json")
       .expect(200)
       .expect(({ body }) => {
@@ -135,7 +135,7 @@ describe("App health", () => {
     configureApiApp(app, { webOrigin: testWebOrigin });
     await app.init();
 
-    await request(app.getHttpServer())
+    await request(app.getHttpAdapter().getInstance())
       .get("/auth/me")
       .set(authHeaders.accounts)
       .expect(200)
@@ -164,11 +164,11 @@ describe("App health", () => {
     configureApiApp(app, { webOrigin: testWebOrigin });
     await app.init();
 
-    await request(app.getHttpServer()).post("/auth/checks/users/manage").set(authHeaders.owner).expect(201).expect({
+    await request(app.getHttpAdapter().getInstance()).post("/auth/checks/users/manage").set(authHeaders.owner).expect(201).expect({
       ok: true
     });
 
-    await request(app.getHttpServer()).post("/auth/checks/commissions/manage").set(authHeaders.owner).expect(201).expect({
+    await request(app.getHttpAdapter().getInstance()).post("/auth/checks/commissions/manage").set(authHeaders.owner).expect(201).expect({
       ok: true
     });
   });
@@ -185,9 +185,9 @@ describe("App health", () => {
     configureApiApp(app, { webOrigin: testWebOrigin });
     await app.init();
 
-    await request(app.getHttpServer()).post("/auth/checks/catalog/manage").set(authHeaders.consultant).expect(403);
-    await request(app.getHttpServer()).post("/auth/checks/users/manage").set(authHeaders.admission).expect(403);
-    await request(app.getHttpServer()).post("/auth/checks/commissions/manage").set(authHeaders.accounts).expect(403);
+    await request(app.getHttpAdapter().getInstance()).post("/auth/checks/catalog/manage").set(authHeaders.consultant).expect(403);
+    await request(app.getHttpAdapter().getInstance()).post("/auth/checks/users/manage").set(authHeaders.admission).expect(403);
+    await request(app.getHttpAdapter().getInstance()).post("/auth/checks/commissions/manage").set(authHeaders.accounts).expect(403);
   });
 
   it("blocks Accounts from approving admission and visa stages", async () => {
@@ -202,8 +202,8 @@ describe("App health", () => {
     configureApiApp(app, { webOrigin: testWebOrigin });
     await app.init();
 
-    await request(app.getHttpServer()).post("/auth/checks/admission/approve").set(authHeaders.accounts).expect(403);
-    await request(app.getHttpServer()).post("/auth/checks/visa/approve").set(authHeaders.accounts).expect(403);
+    await request(app.getHttpAdapter().getInstance()).post("/auth/checks/admission/approve").set(authHeaders.accounts).expect(403);
+    await request(app.getHttpAdapter().getInstance()).post("/auth/checks/visa/approve").set(authHeaders.accounts).expect(403);
   });
 
   it("normalizes and transforms DTO input at the API boundary", async () => {
@@ -215,7 +215,7 @@ describe("App health", () => {
     configureApiApp(app, { webOrigin: testWebOrigin });
     await app.init();
 
-    await request(app.getHttpServer())
+    await request(app.getHttpAdapter().getInstance())
       .post("/validation-test")
       .send({ count: "2", name: "  Intake  " })
       .expect(201)
@@ -234,7 +234,7 @@ describe("App health", () => {
     configureApiApp(app, { webOrigin: testWebOrigin });
     await app.init();
 
-    await request(app.getHttpServer())
+    await request(app.getHttpAdapter().getInstance())
       .post("/validation-test")
       .send({ count: "2", name: "Intake", unexpected: true })
       .expect(400);

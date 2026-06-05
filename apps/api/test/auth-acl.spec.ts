@@ -1,9 +1,12 @@
 import { Controller, HttpCode, Module, Post, UseGuards } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import type { INestApplication } from "@nestjs/common";
+import type { Express } from "express";
 import request from "supertest";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AccessDenialAuditService } from "../src/modules/audit/access-denial-audit.service";
+import type { AccessDenialAuditEvent } from "../src/modules/audit/access-denial-audit.service";
 import { AuthModule } from "../src/modules/auth/auth.module";
 import { RequirePermissions } from "../src/modules/auth/decorators/require-permissions.decorator";
 import { CurrentUserGuard } from "../src/modules/auth/guards/current-user.guard";
@@ -12,6 +15,10 @@ import { UserRole } from "../src/modules/auth/policies/permission.types";
 import { PermissionsService } from "../src/modules/auth/policies/permissions.service";
 
 type TestUserHeaders = Record<string, string>;
+
+const accessDenialAuditServiceMock = {
+  recordSensitiveDenial: vi.fn<(event: AccessDenialAuditEvent) => void>()
+};
 
 function headersFor(role: UserRole): TestUserHeaders {
   return {
@@ -55,14 +62,27 @@ class AclPolicyTestController {
   approveVisa(): void {}
 }
 
+@Controller("permissions-only-test")
+class PermissionsOnlyTestController {
+  @Post("users/manage")
+  @HttpCode(204)
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions({ action: "manage", resource: "users" })
+  manageUsers(): void {}
+}
+
 @Module({
-  controllers: [AclPolicyTestController],
+  controllers: [AclPolicyTestController, PermissionsOnlyTestController],
   imports: [AuthModule]
 })
 class AclPolicyTestModule {}
 
 describe("Auth ACL role permissions", () => {
   let app: INestApplication | undefined;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   afterEach(async () => {
     await app?.close();
@@ -72,11 +92,18 @@ describe("Auth ACL role permissions", () => {
   async function createAclPolicyApp(): Promise<INestApplication> {
     const moduleRef = await Test.createTestingModule({
       imports: [AclPolicyTestModule]
-    }).compile();
+    })
+      .overrideProvider(AccessDenialAuditService)
+      .useValue(accessDenialAuditServiceMock)
+      .compile();
 
     const nestApp = moduleRef.createNestApplication();
     await nestApp.init();
     return nestApp;
+  }
+
+  function httpServer(): Express {
+    return app!.getHttpAdapter().getInstance() as Express;
   }
 
   it("exposes current user permissions from GET /auth/me", async () => {
@@ -87,7 +114,7 @@ describe("Auth ACL role permissions", () => {
     app = moduleRef.createNestApplication();
     await app.init();
 
-    await request(app.getHttpServer())
+    await request(httpServer())
       .get("/auth/me")
       .set(headersFor(UserRole.OWNER))
       .expect(200)
@@ -135,17 +162,26 @@ describe("Auth ACL role permissions", () => {
   it("allows owner management routes and blocks non-owner direct access", async () => {
     app = await createAclPolicyApp();
 
-    await request(app.getHttpServer())
+    await request(httpServer())
       .post("/acl-test/catalog/manage")
       .set(headersFor(UserRole.OWNER))
       .expect(204);
 
-    await request(app.getHttpServer())
+    await request(httpServer())
       .post("/acl-test/users/manage")
       .set(headersFor(UserRole.CONSULTANT))
-      .expect(403);
+      .expect(403)
+      .expect(({ body }) => {
+        expect(body).toEqual({
+          code: "PERMISSION_DENIED",
+          details: {
+            requiredPermissions: [{ action: "manage", resource: "users" }]
+          },
+          message: "Authenticated user does not have the required permission."
+        });
+      });
 
-    await request(app.getHttpServer())
+    await request(httpServer())
       .post("/acl-test/commissions/manage")
       .set(headersFor(UserRole.ADMISSION))
       .expect(403);
@@ -154,35 +190,68 @@ describe("Auth ACL role permissions", () => {
   it("allows department-owned actions and blocks accounts from admission or visa approvals", async () => {
     app = await createAclPolicyApp();
 
-    await request(app.getHttpServer())
+    await request(httpServer())
       .post("/acl-test/payments/confirm")
       .set(headersFor(UserRole.ACCOUNTS))
       .expect(204);
 
-    await request(app.getHttpServer())
+    await request(httpServer())
       .post("/acl-test/admission/approve")
       .set(headersFor(UserRole.ACCOUNTS))
       .expect(403);
 
-    await request(app.getHttpServer())
+    await request(httpServer())
       .post("/acl-test/visa/approve")
       .set(headersFor(UserRole.ACCOUNTS))
       .expect(403);
 
-    await request(app.getHttpServer())
+    await request(httpServer())
       .post("/acl-test/admission/approve")
       .set(headersFor(UserRole.ADMISSION))
       .expect(204);
 
-    await request(app.getHttpServer())
+    await request(httpServer())
       .post("/acl-test/visa/approve")
       .set(headersFor(UserRole.VISA))
       .expect(204);
   });
 
-  it("rejects protected routes without current user context", async () => {
+  it("keeps missing or invalid current user context as unauthorized", async () => {
     app = await createAclPolicyApp();
 
-    await request(app.getHttpServer()).post("/acl-test/catalog/manage").expect(401);
+    await request(httpServer()).post("/acl-test/catalog/manage").expect(401);
+    await request(httpServer())
+      .post("/acl-test/catalog/manage")
+      .set({ ...headersFor(UserRole.OWNER), "x-user-role": "SUPPORT" })
+      .expect(401);
+  });
+
+  it("keeps PermissionsGuard without current user context as unauthorized", async () => {
+    app = await createAclPolicyApp();
+
+    await request(httpServer()).post("/permissions-only-test/users/manage").expect(401);
+  });
+
+  it("audits sensitive authenticated permission denials", async () => {
+    app = await createAclPolicyApp();
+
+    await request(httpServer())
+      .post("/acl-test/admission/approve")
+      .set(headersFor(UserRole.ACCOUNTS))
+      .expect(403);
+
+    expect(accessDenialAuditServiceMock.recordSensitiveDenial).toHaveBeenCalledTimes(1);
+    expect(accessDenialAuditServiceMock.recordSensitiveDenial).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "POST",
+        path: "/acl-test/admission/approve",
+        requiredPermissions: [{ action: "approve", resource: "admission" }],
+        user: {
+          email: "accounts@example.com",
+          id: "user_accounts_1",
+          role: UserRole.ACCOUNTS
+        }
+      })
+    );
   });
 });
