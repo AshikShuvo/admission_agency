@@ -1,5 +1,54 @@
 export type UserRole = "OWNER" | "CONSULTANT" | "ACCOUNTS" | "ADMISSION" | "VISA";
 
+export type PermissionResource =
+  | "admission"
+  | "catalog"
+  | "commissions"
+  | "documents"
+  | "files"
+  | "payments"
+  | "reports"
+  | "users"
+  | "visa";
+
+export type PermissionAction =
+  | "approve"
+  | "confirm"
+  | "create"
+  | "delete"
+  | "manage"
+  | "read"
+  | "update"
+  | "viewSensitive";
+
+export type DataScope = "all" | "assigned" | "department" | "financial" | "owner";
+
+export interface PermissionDefinition {
+  readonly resource: PermissionResource;
+  readonly action: PermissionAction;
+  readonly scope: DataScope;
+}
+
+export type WorkspaceId = "catalog" | "files" | "payments" | "admission" | "visa" | "reports" | "commissions" | "users";
+
+export interface WorkspaceAccess {
+  readonly id: WorkspaceId;
+  readonly label: string;
+  readonly allowed: boolean;
+}
+
+export interface CurrentUserProfile {
+  readonly id: string;
+  readonly email: string;
+  readonly role: UserRole;
+}
+
+export interface CurrentAccessResponse {
+  readonly user: CurrentUserProfile;
+  readonly permissions: readonly PermissionDefinition[];
+  readonly workspaces: readonly WorkspaceAccess[];
+}
+
 export type FileStatus =
   | "FILE_OPENED"
   | "PENDING_PAYMENT_FILE_OPENING"

@@ -25,6 +25,29 @@ const prismaServiceMock = {
   onModuleInit: vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
 };
 
+const authHeaders = {
+  accounts: {
+    "x-user-email": "accounts@example.com",
+    "x-user-id": "user_accounts_1",
+    "x-user-role": "ACCOUNTS"
+  },
+  admission: {
+    "x-user-email": "admission@example.com",
+    "x-user-id": "user_admission_1",
+    "x-user-role": "ADMISSION"
+  },
+  consultant: {
+    "x-user-email": "consultant@example.com",
+    "x-user-id": "user_consultant_1",
+    "x-user-role": "CONSULTANT"
+  },
+  owner: {
+    "x-user-email": "owner@example.com",
+    "x-user-id": "user_owner_1",
+    "x-user-role": "OWNER"
+  }
+} as const;
+
 class BoundaryValidationDto {
   @IsString()
   @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
@@ -73,7 +96,7 @@ describe("App health", () => {
     configureApiApp(app, { webOrigin: testWebOrigin });
     await app.init();
 
-    await request(app.getHttpAdapter().getInstance()).get("/health").expect(200).expect({
+    await request(app.getHttpServer()).get("/health").expect(200).expect({
       ok: true,
       service: "admission-agency-api"
     });
@@ -91,13 +114,96 @@ describe("App health", () => {
     configureApiApp(app, { webOrigin: testWebOrigin });
     await app.init();
 
-    await request(app.getHttpAdapter().getInstance())
+    await request(app.getHttpServer())
       .get("/docs-json")
       .expect(200)
       .expect(({ body }) => {
         expect(body.info.title).toBe("Admission Agency API");
         expect(body.openapi).toMatch(/^3\./);
       });
+  });
+
+  it("returns current user permissions and workspace visibility", async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule]
+    })
+      .overrideProvider(PrismaService)
+      .useValue(prismaServiceMock)
+      .compile();
+
+    app = moduleRef.createNestApplication();
+    configureApiApp(app, { webOrigin: testWebOrigin });
+    await app.init();
+
+    await request(app.getHttpServer())
+      .get("/auth/me")
+      .set(authHeaders.accounts)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.user).toEqual({
+          email: "accounts@example.com",
+          id: "user_accounts_1",
+          role: "ACCOUNTS"
+        });
+        expect(body.permissions).toContainEqual({ action: "confirm", resource: "payments", scope: "financial" });
+        expect(body.permissions).not.toContainEqual({ action: "manage", resource: "users", scope: "all" });
+        expect(body.workspaces).toContainEqual({ allowed: true, id: "payments", label: "Payments" });
+        expect(body.workspaces).toContainEqual({ allowed: false, id: "users", label: "Users" });
+      });
+  });
+
+  it("allows Owner to run owner-only protected actions", async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule]
+    })
+      .overrideProvider(PrismaService)
+      .useValue(prismaServiceMock)
+      .compile();
+
+    app = moduleRef.createNestApplication();
+    configureApiApp(app, { webOrigin: testWebOrigin });
+    await app.init();
+
+    await request(app.getHttpServer()).post("/auth/checks/users/manage").set(authHeaders.owner).expect(201).expect({
+      ok: true
+    });
+
+    await request(app.getHttpServer()).post("/auth/checks/commissions/manage").set(authHeaders.owner).expect(201).expect({
+      ok: true
+    });
+  });
+
+  it("blocks non-owner users from managing catalog, users, and commissions", async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule]
+    })
+      .overrideProvider(PrismaService)
+      .useValue(prismaServiceMock)
+      .compile();
+
+    app = moduleRef.createNestApplication();
+    configureApiApp(app, { webOrigin: testWebOrigin });
+    await app.init();
+
+    await request(app.getHttpServer()).post("/auth/checks/catalog/manage").set(authHeaders.consultant).expect(403);
+    await request(app.getHttpServer()).post("/auth/checks/users/manage").set(authHeaders.admission).expect(403);
+    await request(app.getHttpServer()).post("/auth/checks/commissions/manage").set(authHeaders.accounts).expect(403);
+  });
+
+  it("blocks Accounts from approving admission and visa stages", async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule]
+    })
+      .overrideProvider(PrismaService)
+      .useValue(prismaServiceMock)
+      .compile();
+
+    app = moduleRef.createNestApplication();
+    configureApiApp(app, { webOrigin: testWebOrigin });
+    await app.init();
+
+    await request(app.getHttpServer()).post("/auth/checks/admission/approve").set(authHeaders.accounts).expect(403);
+    await request(app.getHttpServer()).post("/auth/checks/visa/approve").set(authHeaders.accounts).expect(403);
   });
 
   it("normalizes and transforms DTO input at the API boundary", async () => {
@@ -109,7 +215,7 @@ describe("App health", () => {
     configureApiApp(app, { webOrigin: testWebOrigin });
     await app.init();
 
-    await request(app.getHttpAdapter().getInstance())
+    await request(app.getHttpServer())
       .post("/validation-test")
       .send({ count: "2", name: "  Intake  " })
       .expect(201)
@@ -128,7 +234,7 @@ describe("App health", () => {
     configureApiApp(app, { webOrigin: testWebOrigin });
     await app.init();
 
-    await request(app.getHttpAdapter().getInstance())
+    await request(app.getHttpServer())
       .post("/validation-test")
       .send({ count: "2", name: "Intake", unexpected: true })
       .expect(400);
