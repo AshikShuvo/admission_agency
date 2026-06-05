@@ -127,6 +127,23 @@ export interface ActionState extends ActionConfig {
   readonly reason: string | null;
 }
 
+export type WorkspaceRouteAccess =
+  | {
+      readonly reason: null;
+      readonly status: "allowed";
+      readonly workspace: WorkspaceConfig;
+    }
+  | {
+      readonly reason: string;
+      readonly status: "blocked";
+      readonly workspace: WorkspaceConfig;
+    }
+  | {
+      readonly reason: string;
+      readonly status: "unknown";
+      readonly workspaceId: string;
+    };
+
 export const WORKSPACE_CONFIG = [
   {
     id: "catalog",
@@ -373,6 +390,43 @@ export function getVisibleNavigation(user: CurrentUserAccess): readonly Workspac
   );
 }
 
+export function getWorkspaceConfig(workspaceId: string): WorkspaceConfig | null {
+  return WORKSPACE_CONFIG.find((workspace) => workspace.id === workspaceId) ?? null;
+}
+
+export function isWorkspaceId(value: string): value is WorkspaceId {
+  return getWorkspaceConfig(value) !== null;
+}
+
+export function getWorkspaceRouteAccess(user: CurrentUserAccess, workspaceId: string): WorkspaceRouteAccess {
+  const workspace = getWorkspaceConfig(workspaceId);
+
+  if (!workspace) {
+    return {
+      reason: "This workspace route is not registered.",
+      status: "unknown",
+      workspaceId
+    };
+  }
+
+  const hasAssignedWorkspace = hasWorkspace(user, workspace.id);
+  const hasRequiredPermission = hasAnyPermission(user, workspace.requiredPermissions);
+
+  if (hasAssignedWorkspace && hasRequiredPermission) {
+    return {
+      reason: null,
+      status: "allowed",
+      workspace
+    };
+  }
+
+  return {
+    reason: getWorkspaceRestrictionReason(user, workspace, hasAssignedWorkspace, hasRequiredPermission),
+    status: "blocked",
+    workspace
+  };
+}
+
 export function getActionState(user: CurrentUserAccess, actionId: ActionId): ActionState {
   const action = ACTION_CONFIG.find((item) => item.id === actionId);
 
@@ -411,7 +465,7 @@ export function isStaffRole(value: string): value is StaffRole {
 }
 
 function toCurrentUserWorkspace(id: WorkspaceId): CurrentUserWorkspace {
-  const workspace = WORKSPACE_CONFIG.find((item) => item.id === id);
+  const workspace = getWorkspaceConfig(id);
 
   if (!workspace) {
     throw new Error(`Unknown ACL workspace: ${id}`);
@@ -421,6 +475,23 @@ function toCurrentUserWorkspace(id: WorkspaceId): CurrentUserWorkspace {
     id,
     label: workspace.label
   };
+}
+
+function getWorkspaceRestrictionReason(
+  user: CurrentUserAccess,
+  workspace: WorkspaceConfig,
+  hasAssignedWorkspace: boolean,
+  hasRequiredPermission: boolean
+): string {
+  if (!hasAssignedWorkspace) {
+    return `${getRoleLabel(user.role)} is not assigned to the ${workspace.label} workspace.`;
+  }
+
+  if (!hasRequiredPermission) {
+    return `${getRoleLabel(user.role)} does not have the required ${workspace.label} permission.`;
+  }
+
+  return `${getRoleLabel(user.role)} cannot open the ${workspace.label} workspace.`;
 }
 
 function toPermissionKey(permission: ApiPermissionDefinition): string {

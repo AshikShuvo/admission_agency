@@ -4,11 +4,11 @@ import { createAccessFromContract, type CurrentAccessResponse, type CurrentUserA
 export type GetCurrentUserResponse = CurrentUserAccess;
 
 export async function getCurrentUserAccess(): Promise<GetCurrentUserResponse> {
-  return createAccessFromContract(await apiClient.request<CurrentAccessResponse>("/auth/me"));
+  return createAccessFromContract(await apiClient.request<CurrentAccessResponse>("/auth/me", { cache: "no-store" }));
 }
 
 export async function getCurrentUserAccessResult(): Promise<ApiResult<GetCurrentUserResponse>> {
-  const result = await apiClient.requestResult<CurrentAccessResponse>("/auth/me");
+  const result = await apiClient.requestResult<CurrentAccessResponse>("/auth/me", { cache: "no-store" });
 
   if (!result.ok || !result.data) {
     return {

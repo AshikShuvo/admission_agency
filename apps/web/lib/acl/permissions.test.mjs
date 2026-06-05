@@ -7,7 +7,8 @@ import {
   getActionState,
   getBlockedActions,
   getVisibleActions,
-  getVisibleNavigation
+  getVisibleNavigation,
+  getWorkspaceRouteAccess
 } from "./permissions.ts";
 
 test("OWNER can open every workspace and owner-only actions", () => {
@@ -33,6 +34,38 @@ test("CONSULTANT gets assigned-file navigation and no owner-only controls", () =
   assert.equal(getActionState(consultant, "manage-catalog").hidden, true);
   assert.equal(getActionState(consultant, "manage-users").hidden, true);
   assert.equal(getVisibleActions(consultant).some((action) => action.id === "enter-commission"), false);
+});
+
+test("navigation hides owner-only workspaces from non-owner roles", () => {
+  const consultant = createRoleAccess("CONSULTANT");
+  const visibleWorkspaceIds = getVisibleNavigation(consultant).map((workspace) => workspace.id);
+
+  assert.equal(visibleWorkspaceIds.includes("users"), false);
+  assert.equal(visibleWorkspaceIds.includes("commissions"), false);
+});
+
+test("direct workspace route access allows owner-only workspace for OWNER", () => {
+  const owner = createRoleAccess("OWNER");
+  const access = getWorkspaceRouteAccess(owner, "users");
+
+  assert.equal(access.status, "allowed");
+
+  if (access.status === "allowed") {
+    assert.equal(access.workspace.id, "users");
+    assert.equal(access.reason, null);
+  }
+});
+
+test("direct workspace route access blocks non-owner from owner-only workspace", () => {
+  const consultant = createRoleAccess("CONSULTANT");
+  const access = getWorkspaceRouteAccess(consultant, "users");
+
+  assert.equal(access.status, "blocked");
+
+  if (access.status === "blocked") {
+    assert.equal(access.workspace.id, "users");
+    assert.match(access.reason, /not assigned to the Users workspace/);
+  }
 });
 
 test("ACCOUNTS can confirm payments but cannot approve admission or visa stages", () => {
